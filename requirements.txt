@@ -1,3 +1,2 @@
 streamlit
-PyPDF2
-pdfminer.six
+pypdf==4.2.0
