@@ -1,0 +1,4 @@
+streamlit
+pypdf
+pdfminer.six
+sqlite3
