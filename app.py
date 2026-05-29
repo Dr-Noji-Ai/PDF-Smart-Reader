@@ -1,294 +1,212 @@
 import streamlit as st
-from PyPDF2 import PdfReader
-import sqlite3
-from datetime import datetime
+from pypdf import PdfReader
+import io
 
-=========================================
-
-PAGE CONFIG
-
-=========================================
+# =====================================================
+# PAGE CONFIG
+# =====================================================
 
 st.set_page_config(
-page_title="Obad PDF Reader",
-page_icon="📘",
-layout="wide"
+    page_title="Obad PDF Reader",
+    page_icon="📘",
+    layout="wide"
 )
 
-=========================================
-
-PREMIUM UI
-
-=========================================
+# =====================================================
+# CUSTOM CSS
+# =====================================================
 
 st.markdown("""
-
 <style>
 
-/* Hide Streamlit UI */
-#MainMenu {visibility:hidden;}
-footer {visibility:hidden;}
-header {visibility:hidden;}
-
-/* Background */
-.stApp{
-    background:
-    radial-gradient(circle at top left,#312e81,#0f172a 40%),
-    linear-gradient(to bottom,#020617,#111827);
-    color:white;
+body {
+    background-color: #0e1117;
+    color: white;
 }
 
-/* Container */
-.block-container{
-    padding-top:2rem;
-    max-width:1200px;
+.main-title {
+    text-align: center;
+    font-size: 42px;
+    font-weight: 800;
+    color: #4fc3f7;
+    margin-bottom: 20px;
 }
 
-/* Main title */
-.main-title{
-    text-align:center;
-    font-size:52px;
-    font-weight:800;
-    color:white;
-    margin-bottom:10px;
-    text-shadow:0 0 20px rgba(99,102,241,.6);
-}
+.card {
+    background: linear-gradient(
+        145deg,
+        rgba(255,255,255,0.08),
+        rgba(255,255,255,0.03)
+    );
 
-/* Subtitle */
-.sub-title{
-    text-align:center;
-    color:#94a3b8;
-    font-size:18px;
-    margin-bottom:40px;
-}
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
 
-/* Cards */
-.card{
-    background:rgba(255,255,255,0.05);
-    border:1px solid rgba(255,255,255,0.08);
-    border-radius:24px;
-    padding:24px;
-    margin-bottom:20px;
-    backdrop-filter: blur(14px);
-    box-shadow:0 10px 40px rgba(0,0,0,0.35);
-}
-
-/* Buttons */
-.stButton > button{
-    width:100%;
-    border:none;
-    border-radius:18px;
-    padding:14px;
-    font-size:16px;
-    font-weight:700;
-    color:white;
-
-    background:
-    linear-gradient(135deg,#4f46e5,#7c3aed,#06b6d4);
+    border: 1px solid rgba(255,255,255,0.08);
 
     box-shadow:
-    0 8px 20px rgba(79,70,229,.45),
-    inset 0 1px 1px rgba(255,255,255,.2);
-
-    transition:0.25s;
+        0 8px 32px rgba(0,0,0,0.35),
+        inset 0 1px 1px rgba(255,255,255,0.08);
 }
 
-.stButton > button:hover{
-    transform:translateY(-2px) scale(1.02);
+.stButton > button {
+
+    width: 100%;
+    border-radius: 18px;
+    height: 55px;
+
+    border: none;
+
+    background: linear-gradient(
+        145deg,
+        #4fc3f7,
+        #1976d2
+    );
+
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+
     box-shadow:
-    0 14px 30px rgba(99,102,241,.6);
+        0 6px 20px rgba(0,0,0,0.35);
+
+    transition: 0.3s;
 }
 
-/* Inputs */
-.stTextInput input{
-    background:#0f172a !important;
-    color:white !important;
-    border-radius:14px !important;
-    border:1px solid #334155 !important;
+.stButton > button:hover {
+    transform: scale(1.02);
 }
 
-textarea{
-    background:#0f172a !important;
-    color:white !important;
+.search-box {
+    background: rgba(255,255,255,0.05);
+    padding: 15px;
+    border-radius: 15px;
 }
 
-/* File uploader */
-[data-testid="stFileUploader"]{
-    background:rgba(255,255,255,0.04);
-    border-radius:20px;
-    padding:20px;
-    border:1px dashed #475569;
-}
+</style>
+""", unsafe_allow_html=True)
 
-</style>""", unsafe_allow_html=True)
+# =====================================================
+# TITLE
+# =====================================================
 
-=========================================
-
-HEADER
-
-=========================================
-
-st.markdown("""
-
-<div class='main-title'>
-📘 Obad PDF Reader
-</div><div class='sub-title'>
-3D Enterprise PDF Experience • Smart Search • Bookmarks
-</div>
-""", unsafe_allow_html=True)=========================================
-
-DATABASE
-
-=========================================
-
-conn = sqlite3.connect("obad_pdf.db", check_same_thread=False)
-cursor = conn.cursor()
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS bookmarks(
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-filename TEXT,
-page INTEGER,
-note TEXT,
-created_at TEXT
+st.markdown(
+    "<div class='main-title'>📘 Obad PDF Reader</div>",
+    unsafe_allow_html=True
 )
-""")
 
-conn.commit()
+# =====================================================
+# SESSION
+# =====================================================
 
-=========================================
+if "bookmarks" not in st.session_state:
+    st.session_state.bookmarks = []
 
-LAYOUT
+# =====================================================
+# FILE UPLOAD
+# =====================================================
 
-=========================================
-
-left, right = st.columns([2,1])
-
-=========================================
-
-LEFT SIDE
-
-=========================================
-
-with left:
-
-st.markdown("<div class='card'>", unsafe_allow_html=True)
-
-uploaded = st.file_uploader(
-    "📤 Upload PDF File",
+uploaded_pdf = st.file_uploader(
+    "📤 Upload PDF",
     type=["pdf"]
 )
 
-search = st.text_input(
-    "🔍 Search inside PDF",
-    placeholder="Search any word..."
-)
+# =====================================================
+# MAIN
+# =====================================================
 
-st.markdown("</div>", unsafe_allow_html=True)
+if uploaded_pdf:
 
-=========================================
+    pdf = PdfReader(uploaded_pdf)
 
-RIGHT SIDE
+    full_text = ""
 
-=========================================
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
 
-with right:
+    st.subheader("📄 PDF Information")
 
-st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.write(f"Pages: {len(pdf.pages)}")
 
-st.markdown("### 🔖 Saved Bookmarks")
+    for page in pdf.pages:
 
-cursor.execute("""
-SELECT filename,page,note,created_at
-FROM bookmarks
-ORDER BY id DESC
-LIMIT 10
-""")
+        try:
+            text = page.extract_text()
 
-rows = cursor.fetchall()
+            if text:
+                full_text += text + "\n"
 
-if rows:
-    for r in rows:
-        st.info(f'''
+        except:
+            pass
 
-📄 {r[0]}
+    st.success("✅ PDF Loaded Successfully")
 
-📑 Page {r[1]}
+    st.markdown("</div>", unsafe_allow_html=True)
 
-📝 {r[2]}
+    # =====================================================
+    # SEARCH
+    # =====================================================
 
-⏱ {r[3]}
-''')
-else:
-st.caption("No bookmarks yet")
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
 
-st.markdown("</div>", unsafe_allow_html=True)
+    st.subheader("🔍 Search Inside PDF")
 
-=========================================
-
-PDF READER
-
-=========================================
-
-if uploaded:
-
-st.markdown("<div class='card'>", unsafe_allow_html=True)
-
-reader = PdfReader(uploaded)
-
-st.success(f"✅ PDF Loaded Successfully ({len(reader.pages)} pages)")
-
-for i, page in enumerate(reader.pages):
-
-    try:
-        text = page.extract_text()
-    except:
-        text = ""
+    search = st.text_input("Enter word or sentence")
 
     if search:
-        if search.lower() not in text.lower():
-            continue
 
-    st.markdown(f"## 📄 Page {i+1}")
+        if search.lower() in full_text.lower():
+
+            st.success("✅ Text Found")
+
+            index = full_text.lower().find(search.lower())
+
+            start = max(0, index - 300)
+            end = min(len(full_text), index + 300)
+
+            st.text_area(
+                "Result",
+                full_text[start:end],
+                height=250
+            )
+
+        else:
+            st.error("❌ Not Found")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # =====================================================
+    # BOOKMARKS
+    # =====================================================
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+
+    st.subheader("🔖 Bookmarks")
+
+    bookmark = st.text_input("Add Bookmark")
+
+    if st.button("➕ Save Bookmark"):
+
+        if bookmark.strip():
+            st.session_state.bookmarks.append(bookmark)
+
+    for b in st.session_state.bookmarks:
+        st.write("📌", b)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # =====================================================
+    # FULL TEXT
+    # =====================================================
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+
+    st.subheader("📖 PDF Text")
 
     st.text_area(
-        f"content_{i}",
-        value=text[:4000],
-        height=250
+        "Content",
+        full_text,
+        height=400
     )
 
-    note = st.text_input(
-        f"Bookmark Note Page {i+1}",
-        key=f"note_{i}"
-    )
-
-    if st.button(f"💾 Save Bookmark Page {i+1}"):
-
-        cursor.execute("""
-        INSERT INTO bookmarks(filename,page,note,created_at)
-        VALUES(?,?,?,?)
-        """,(
-            uploaded.name,
-            i+1,
-            note,
-            datetime.now().isoformat()
-        ))
-
-        conn.commit()
-
-        st.success("Bookmark Saved")
-
-st.markdown("</div>", unsafe_allow_html=True)
-
-=========================================
-
-FOOTER
-
-=========================================
-
-st.markdown("""
-
-<div style='text-align:center;margin-top:40px;color:#64748b;font-size:14px;'>
-Obad PDF Reader • Enterprise Edition
-</div>
-""", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
