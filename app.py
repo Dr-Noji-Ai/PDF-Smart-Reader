@@ -25,12 +25,12 @@ st.markdown("""
 
 <style>
 
-/* اخفاء عناصر ستريملت */
+/* Hide Streamlit UI */
 #MainMenu {visibility:hidden;}
 footer {visibility:hidden;}
 header {visibility:hidden;}
 
-/* الخلفية */
+/* Background */
 .stApp{
     background:
     radial-gradient(circle at top left,#312e81,#0f172a 40%),
@@ -38,13 +38,13 @@ header {visibility:hidden;}
     color:white;
 }
 
-/* الحاوية */
+/* Container */
 .block-container{
     padding-top:2rem;
     max-width:1200px;
 }
 
-/* العنوان */
+/* Main title */
 .main-title{
     text-align:center;
     font-size:52px;
@@ -54,7 +54,7 @@ header {visibility:hidden;}
     text-shadow:0 0 20px rgba(99,102,241,.6);
 }
 
-/* الوصف */
+/* Subtitle */
 .sub-title{
     text-align:center;
     color:#94a3b8;
@@ -62,7 +62,7 @@ header {visibility:hidden;}
     margin-bottom:40px;
 }
 
-/* البطاقات */
+/* Cards */
 .card{
     background:rgba(255,255,255,0.05);
     border:1px solid rgba(255,255,255,0.08);
@@ -73,7 +73,7 @@ header {visibility:hidden;}
     box-shadow:0 10px 40px rgba(0,0,0,0.35);
 }
 
-/* الأزرار */
+/* Buttons */
 .stButton > button{
     width:100%;
     border:none;
@@ -99,7 +99,7 @@ header {visibility:hidden;}
     0 14px 30px rgba(99,102,241,.6);
 }
 
-/* المدخلات */
+/* Inputs */
 .stTextInput input{
     background:#0f172a !important;
     color:white !important;
@@ -112,16 +112,12 @@ textarea{
     color:white !important;
 }
 
-/* رفع الملفات */
+/* File uploader */
 [data-testid="stFileUploader"]{
     background:rgba(255,255,255,0.04);
     border-radius:20px;
     padding:20px;
     border:1px dashed #475569;
-}
-
-.search-box{
-    margin-top:10px;
 }
 
 </style>""", unsafe_allow_html=True)
@@ -166,7 +162,7 @@ LAYOUT
 
 =========================================
 
-left,right = st.columns([2,1])
+left, right = st.columns([2,1])
 
 =========================================
 
@@ -213,7 +209,7 @@ rows = cursor.fetchall()
 
 if rows:
     for r in rows:
-        st.info(f"""
+        st.info(f'''
 
 📄 {r[0]}
 
@@ -222,7 +218,7 @@ if rows:
 📝 {r[2]}
 
 ⏱ {r[3]}
-""")
+''')
 else:
 st.caption("No bookmarks yet")
 
@@ -242,7 +238,7 @@ reader = PdfReader(uploaded)
 
 st.success(f"✅ PDF Loaded Successfully ({len(reader.pages)} pages)")
 
-for i,page in enumerate(reader.pages):
+for i, page in enumerate(reader.pages):
 
     try:
         text = page.extract_text()
@@ -293,6 +289,6 @@ FOOTER
 st.markdown("""
 
 <div style='text-align:center;margin-top:40px;color:#64748b;font-size:14px;'>
-Obad PDF Reader • Enterprise UI
+Obad PDF Reader • Enterprise Edition
 </div>
 """, unsafe_allow_html=True)
